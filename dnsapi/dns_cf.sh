@@ -18,16 +18,16 @@ dns_cf_add() {
   fulldomain=$1
   txtvalue=$2
 
-  CF_Token="${CF_Token:-$(_readaccountconf_mutable CF_Token)}"
-  CF_Account_ID="${CF_Account_ID:-$(_readaccountconf_mutable CF_Account_ID)}"
-  CF_Zone_ID="${CF_Zone_ID:-$(_readaccountconf_mutable CF_Zone_ID)}"
-  CF_Key="${CF_Key:-$(_readaccountconf_mutable CF_Key)}"
-  CF_Email="${CF_Email:-$(_readaccountconf_mutable CF_Email)}"
+  CF_Token="${CF_Token:-$(_get_conf CF_Token)}"
+  CF_Account_ID="${CF_Account_ID:-$(_get_conf CF_Account_ID)}"
+  CF_Zone_ID="${CF_Zone_ID:-$(_get_conf CF_Zone_ID)}"
+  CF_Key="${CF_Key:-$(_get_conf CF_Key)}"
+  CF_Email="${CF_Email:-$(_get_conf CF_Email)}"
 
   if [ "$CF_Token" ]; then
-    _saveaccountconf_mutable CF_Token "$CF_Token"
-    _saveaccountconf_mutable CF_Account_ID "$CF_Account_ID"
-    _saveaccountconf_mutable CF_Zone_ID "$CF_Zone_ID"
+    _savedomainconf CF_Token "$CF_Token"
+    _savedomainconf CF_Account_ID "$CF_Account_ID"
+    _savedomainconf CF_Zone_ID "$CF_Zone_ID"
   else
     if [ -z "$CF_Key" ] || [ -z "$CF_Email" ]; then
       CF_Key=""
@@ -42,9 +42,9 @@ dns_cf_add() {
       _err "Please check and retry."
       return 1
     fi
-    #save the api key and email to the account conf file.
-    _saveaccountconf_mutable CF_Key "$CF_Key"
-    _saveaccountconf_mutable CF_Email "$CF_Email"
+    #save the api key and email to the domain conf file.
+    _savedomainconf CF_Key "$CF_Key"
+    _savedomainconf CF_Email "$CF_Email"
   fi
 
   _debug "First detect the root zone"
@@ -92,11 +92,11 @@ dns_cf_rm() {
   fulldomain=$1
   txtvalue=$2
 
-  CF_Token="${CF_Token:-$(_readaccountconf_mutable CF_Token)}"
-  CF_Account_ID="${CF_Account_ID:-$(_readaccountconf_mutable CF_Account_ID)}"
-  CF_Zone_ID="${CF_Zone_ID:-$(_readaccountconf_mutable CF_Zone_ID)}"
-  CF_Key="${CF_Key:-$(_readaccountconf_mutable CF_Key)}"
-  CF_Email="${CF_Email:-$(_readaccountconf_mutable CF_Email)}"
+  CF_Token="${CF_Token:-$(_get_conf CF_Token)}"
+  CF_Account_ID="${CF_Account_ID:-$(_get_conf CF_Account_ID)}"
+  CF_Zone_ID="${CF_Zone_ID:-$(_get_conf CF_Zone_ID)}"
+  CF_Key="${CF_Key:-$(_get_conf CF_Key)}"
+  CF_Email="${CF_Email:-$(_get_conf CF_Email)}"
 
   _debug "First detect the root zone"
   if ! _get_root "$fulldomain"; then
@@ -198,6 +198,16 @@ _get_root() {
     i=$(_math "$i" + 1)
   done
   return 1
+}
+
+# support credentials previously saved in account conf
+_get_conf() {
+  if [ -n "$(_readdomainconf "$1")" ]; then
+    _readdomainconf "$1"
+  else
+    _readaccountconf_mutable "$1"
+  fi
+  return 0
 }
 
 _cf_rest() {
